@@ -11,8 +11,8 @@ app.use(express.json());
 const db = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'password',
-  database: process.env.DB_NAME || 'testdb'
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'cloud_db'
 });
 
 db.connect(err => {
@@ -20,16 +20,23 @@ db.connect(err => {
     console.error('Database connection failed:', err);
   } else {
     console.log('Successfully connected to MySQL database.');
-    // Create a simple table if it doesn't exist
-    db.query(`CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255))`);
+    db.query(`CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(255) NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
   }
 });
 
-// The POST endpoint
 app.post('/api/submit', (req, res) => {
-  const { name } = req.body;
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username and password are required.' });
+  }
   
-  db.query('INSERT INTO users (name) VALUES (?)', [name], (err, result) => {
+  db.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, password], (err, result) => {
     if (err) {
       console.error(err);
       return res.status(500).send('Error inserting into database');
